@@ -123,12 +123,15 @@ class JobApplicationApp:
             # Formater la date pour l'affichage
             formatted_date = date_obj.strftime('%d-%m-%Y') if date_obj else "Date invalide"
 
+            # Couleur en fonction du statut
+            status_color = "#ff0000" if app['status'] == "Refusé" else "#00cc66" if app['status'] == "Accepté" else "#0000ff"
+
             # Ajouter chaque ligne dans le tableau avec les informations sur les candidatures
             tk.Label(table, text=f"{idx}", width=5, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=0, sticky="nsew", ipadx=5, ipady=5)
             tk.Label(table, text=f"{app['company_name']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=1, sticky="nsew", ipadx=5, ipady=5)
             tk.Label(table, text=f"{app['job_title']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=2, sticky="nsew", ipadx=5, ipady=5)
             tk.Label(table, text=formatted_date, width=10, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=3, sticky="nsew", ipadx=5, ipady=5)
-            tk.Label(table, text=f"{app['status']}", width=10, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=4, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(table, text=f"{app['status']}", width=10, anchor="center", relief=tk.SOLID, bd=1, bg=status_color, fg='#ffffff').grid(row=idx, column=4, sticky="nsew", ipadx=5, ipady=5)
 
             # Ajouter un bouton pour modifier ou voir les détails de chaque candidature
             tk.Button(table, text="Modifier / Voir", command=lambda idx=idx-1: self.edit_application(idx), relief=tk.SOLID, bd=1, bg='#ffffff', fg='#000000', cursor="@pointer.svg").grid(row=idx, column=5, sticky="nsew", ipadx=5, ipady=5)
@@ -171,9 +174,33 @@ class JobApplicationApp:
         self.status_combobox.grid(row=6, column=1, padx=10, pady=5)
         self.status_combobox.current(0)
 
-        # Boutons pour sauvegarder la candidature ou retourner à la page d'accueil
-        tk.Button(self.add_frame, text="Sauvegarder", command=self.save_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="@pointer.svg").grid(row=7, column=0, pady=20)
-        tk.Button(self.add_frame, text="Retour", command=self.switch_to_home_page, bg='#ffffff', fg='#000000', cursor="@pointer.svg").grid(row=7, column=1, pady=20)
+        # Champ pour le commentaire de la candidature avec scrollbar
+        tk.Label(self.add_frame, text="Commentaire", bg='#333333', fg='#ffffff').grid(row=7, column=0, padx=10, pady=5, sticky='w')
+        self.comment_text_frame = tk.Frame(self.add_frame)
+        self.comment_text_frame.grid(row=7, column=1, padx=10, pady=5, columnspan=2, sticky='w')
+        self.comment_text = tk.Text(self.comment_text_frame, width=67, height=5, wrap='word')
+        self.comment_text.pack(side='left', fill='both', expand=True)
+        self.comment_scroll = tk.Scrollbar(self.comment_text_frame, command=self.comment_text.yview, width=8)
+        self.comment_scroll.pack(side='right', fill='y')
+        self.comment_text.config(yscrollcommand=self.comment_scroll.set)
+
+        # Limite de caractères pour le champ commentaire
+        self.comment_char_count_label = tk.Label(self.add_frame, text="0/1500", bg='#333333', fg='#ffffff')
+        self.comment_char_count_label.grid(row=8, column=1, padx=10, sticky='w')
+        self.comment_text.bind("<KeyRelease>", self.update_char_count)
+
+        # Boutons pour sauvegarder la candidature, retourner à la page d'accueil ou supprimer la candidature
+        tk.Button(self.add_frame, text="Sauvegarder", command=self.save_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="@pointer.svg").grid(row=9, column=0, pady=20)
+        tk.Button(self.add_frame, text="Retour", command=self.switch_to_home_page, bg='#ffffff', fg='#000000', cursor="@pointer.svg").grid(row=9, column=1, pady=20)
+        tk.Button(self.add_frame, text="Supprimer", command=self.delete_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="@pointer.svg").grid(row=9, column=2, pady=20)
+
+    def update_char_count(self, event):
+        current_length = len(self.comment_text.get("1.0", "end-1c"))
+        if current_length > 1500:
+            self.comment_text.delete("1.0", "end")
+            self.comment_text.insert("1.0", event.widget.get("1.0", "end-1c")[:1500])
+            current_length = 1500
+        self.comment_char_count_label.config(text=f"{current_length}/1500")
 
     def switch_to_home_page(self):
         # Passer de la page d'ajout à la page d'accueil
@@ -191,6 +218,7 @@ class JobApplicationApp:
         self.cover_letter_entry.delete(0, tk.END)
         self.screenshot_entry.delete(0, tk.END)
         self.status_combobox.current(0)
+        self.comment_text.delete('1.0', tk.END)
 
         self.home_frame.pack_forget()
         self.add_frame.pack(fill='both', expand=True)
@@ -210,6 +238,8 @@ class JobApplicationApp:
         self.screenshot_entry.delete(0, tk.END)
         self.screenshot_entry.insert(0, selected_application["screenshot_path"])
         self.status_combobox.set(selected_application["status"])
+        self.comment_text.delete('1.0', tk.END)
+        self.comment_text.insert('1.0', selected_application.get("comment", ""))
 
         self.home_frame.pack_forget()
         self.add_frame.pack(fill='both', expand=True)
@@ -223,6 +253,7 @@ class JobApplicationApp:
         cover_letter_path = self.cover_letter_entry.get().strip()
         screenshot_path = self.screenshot_entry.get().strip()
         status = self.status_combobox.get()
+        comment = self.comment_text.get('1.0', tk.END).strip()
 
         # Vérifier que tous les champs sont remplis
         if not company_name or not job_title or not cover_letter_path or not screenshot_path:
@@ -237,6 +268,7 @@ class JobApplicationApp:
             self.database["applications"][self.current_edit_index]["cover_letter_path"] = cover_letter_path
             self.database["applications"][self.current_edit_index]["screenshot_path"] = screenshot_path
             self.database["applications"][self.current_edit_index]["status"] = status
+            self.database["applications"][self.current_edit_index]["comment"] = comment
         else:
             # Ajouter une nouvelle candidature
             application = {
@@ -245,7 +277,8 @@ class JobApplicationApp:
                 "cover_letter_path": cover_letter_path,
                 "screenshot_path": screenshot_path,
                 "application_date": datetime.now().strftime("%d-%m-%Y"),
-                "status": status
+                "status": status,
+                "comment": comment
             }
             self.database["applications"].append(application)
 
@@ -253,6 +286,18 @@ class JobApplicationApp:
         save_applications(self.database)
         messagebox.showinfo("Succès", "Candidature sauvegardée avec succès.")
         self.switch_to_home_page()
+
+    def delete_application(self):
+        # Supprimer la candidature actuellement sélectionnée
+        if self.current_edit_index is not None:
+            confirm = messagebox.askyesno("Confirmation", "Voulez-vous vraiment supprimer cette candidature ?")
+            if confirm:
+                del self.database["applications"][self.current_edit_index]
+                save_applications(self.database)
+                messagebox.showinfo("Succès", "Candidature supprimée avec succès.")
+                self.switch_to_home_page()
+        else:
+            messagebox.showerror("Erreur", "Aucune candidature sélectionnée pour la suppression.")
 
     def select_cover_letter(self):
         # Ouvrir une boîte de dialogue pour sélectionner le fichier de la lettre de motivation

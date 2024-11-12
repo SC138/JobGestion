@@ -1,28 +1,3 @@
 {
-    "applications": [
-        {
-            "company_name": "CGI",
-            "job_title": "Analayste Developpeur",
-            "cover_letter_path": "/Users/tom/Documents/Recherche emploi/10 CGI 06-11-2024 REFUS/LM CGI Analayste Developpeur.pdf",
-            "screenshot_path": "/Users/tom/Documents/CAPTURES D'E\u0301CRAN/SCR-20240418-mzra.png",
-            "application_date": "2024-11-08",
-            "status": "Refus\u00e9"
-        },
-        {
-            "company_name": "Koloa",
-            "job_title": "Consultant Int\u00e9grateur Logiciel",
-            "cover_letter_path": "/Users/tom/Documents/Recherche emploi/09 Lokoa 06-11-2024 REFUS/LM Lokoa.pdf",
-            "screenshot_path": "/Users/tom/Documents/CAPTURES D'E\u0301CRAN/SCR-20240403-ngyi.jpeg",
-            "application_date": "2024-11-08",
-            "status": "Refus\u00e9"
-        },
-        {
-            "company_name": "Boond",
-            "job_title": "test",
-            "cover_letter_path": "/Users/tom/Documents/Recherche emploi/09 Lokoa 06-11-2024 REFUS/LM Lokoa.pdf",
-            "screenshot_path": "/Users/tom/Documents/CAPTURES D'E\u0301CRAN/SCR-20240403-ngyi.jpeg",
-            "application_date": "08-11-2024",
-            "status": "En attente"
-        }
-    ]
+    "applications": []
 }
