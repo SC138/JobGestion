@@ -18,11 +18,14 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+# Modifier les fonctions utilisant des ressources
 # Fonction pour sauvegarder les candidatures dans un fichier JSON
 def save_applications(database):
     try:
+        # Enregistrer dans le répertoire de l'utilisateur
+        json_path = os.path.join(os.path.expanduser("~"), "applications.json")
         # Ouvrir le fichier JSON en mode écriture pour y sauvegarder les candidatures
-        with open("applications.json", "w") as file:
+        with open(json_path, "w") as file:
             json.dump(database, file, indent=4)
     except Exception as e:
         # En cas d'erreur, afficher un message d'erreur à l'utilisateur
@@ -30,10 +33,12 @@ def save_applications(database):
 
 # Fonction pour lire les candidatures sauvegardées
 def load_applications():
+    # Charger depuis le répertoire de l'utilisateur
+    json_path = os.path.join(os.path.expanduser("~"), "applications.json")
     # Vérifier si le fichier JSON existe
-    if os.path.exists("applications.json"):
+    if os.path.exists(json_path):
         # Si oui, ouvrir le fichier et charger les candidatures
-        with open("applications.json", "r") as file:
+        with open(json_path, "r") as file:
             return json.load(file)
     else:
         # Sinon, retourner une base de données vide
@@ -89,7 +94,7 @@ class JobApplicationApp:
         self.update_application_list()
 
         # Bouton pour ajouter une nouvelle candidature
-        tk.Button(self.home_frame, text="Nouvelle candidature", command=self.switch_to_add_page, bg='#ffffff', fg='#000000', relief=tk.FLAT, highlightthickness=0, cursor="@pointer.svg").pack(pady=20)
+        tk.Button(self.home_frame, text="Nouvelle candidature", command=self.switch_to_add_page, bg='#ffffff', fg='#000000', relief=tk.FLAT, highlightthickness=0, cursor="arrow").pack(pady=20)
 
     def update_application_list(self):
         # Effacer les widgets existants pour pouvoir recharger la liste
@@ -134,7 +139,7 @@ class JobApplicationApp:
             tk.Label(table, text=f"{app['status']}", width=10, anchor="center", relief=tk.SOLID, bd=1, bg=status_color, fg='#ffffff').grid(row=idx, column=4, sticky="nsew", ipadx=5, ipady=5)
 
             # Ajouter un bouton pour modifier ou voir les détails de chaque candidature
-            tk.Button(table, text="Modifier / Voir", command=lambda idx=idx-1: self.edit_application(idx), relief=tk.SOLID, bd=1, bg='#ffffff', fg='#000000', cursor="@pointer.svg").grid(row=idx, column=5, sticky="nsew", ipadx=5, ipady=5)
+            tk.Button(table, text="Modifier / Voir", command=lambda idx=idx-1: self.edit_application(idx), relief=tk.SOLID, bd=1, bg='#ffffff', fg='#000000', cursor="arrow").grid(row=idx, column=5, sticky="nsew", ipadx=5, ipady=5)
 
     def build_add_page(self):
         # Ajouter le logo centré si disponible
@@ -158,15 +163,15 @@ class JobApplicationApp:
         tk.Label(self.add_frame, text="Chemin de la lettre de motivation", bg='#333333', fg='#ffffff').grid(row=4, column=0, padx=10, pady=5, sticky='w')
         self.cover_letter_entry = tk.Entry(self.add_frame, width=50)
         self.cover_letter_entry.grid(row=4, column=1, padx=10, pady=5)
-        tk.Button(self.add_frame, text="Parcourir", command=self.select_cover_letter, cursor="@pointer.svg", bg='#ffffff', fg='#000000').grid(row=4, column=2, padx=10, pady=5)
-        tk.Button(self.add_frame, text="Voir", command=self.preview_cover_letter, cursor="@pointer.svg", bg='#ffffff', fg='#000000').grid(row=4, column=3, padx=10, pady=5)
+        tk.Button(self.add_frame, text="Parcourir", command=self.select_cover_letter, cursor="arrow", bg='#ffffff', fg='#000000').grid(row=4, column=2, padx=10, pady=5)
+        tk.Button(self.add_frame, text="Voir", command=self.preview_cover_letter, cursor="arrow", bg='#ffffff', fg='#000000').grid(row=4, column=3, padx=10, pady=5)
 
         # Champ pour le chemin du screenshot de la candidature
         tk.Label(self.add_frame, text="Chemin du screenshot", bg='#333333', fg='#ffffff').grid(row=5, column=0, padx=10, pady=5, sticky='w')
         self.screenshot_entry = tk.Entry(self.add_frame, width=50)
         self.screenshot_entry.grid(row=5, column=1, padx=10, pady=5)
-        tk.Button(self.add_frame, text="Parcourir", command=self.select_screenshot, cursor="@pointer.svg", bg='#ffffff', fg='#000000').grid(row=5, column=2, padx=10, pady=5)
-        tk.Button(self.add_frame, text="Voir", command=self.preview_screenshot, cursor="@pointer.svg", bg='#ffffff', fg='#000000').grid(row=5, column=3, padx=10, pady=5)
+        tk.Button(self.add_frame, text="Parcourir", command=self.select_screenshot, cursor="arrow", bg='#ffffff', fg='#000000').grid(row=5, column=2, padx=10, pady=5)
+        tk.Button(self.add_frame, text="Voir", command=self.preview_screenshot, cursor="arrow", bg='#ffffff', fg='#000000').grid(row=5, column=3, padx=10, pady=5)
 
         # Champ pour le statut de la candidature (En attente, Accepté, Refusé)
         tk.Label(self.add_frame, text="Statut", bg='#333333', fg='#ffffff').grid(row=6, column=0, padx=10, pady=5, sticky='w')
@@ -190,9 +195,9 @@ class JobApplicationApp:
         self.comment_text.bind("<KeyRelease>", self.update_char_count)
 
         # Boutons pour sauvegarder la candidature, retourner à la page d'accueil ou supprimer la candidature
-        tk.Button(self.add_frame, text="Sauvegarder", command=self.save_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="@pointer.svg").grid(row=9, column=0, pady=20)
-        tk.Button(self.add_frame, text="Retour", command=self.switch_to_home_page, bg='#ffffff', fg='#000000', cursor="@pointer.svg").grid(row=9, column=1, pady=20)
-        tk.Button(self.add_frame, text="Supprimer", command=self.delete_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="@pointer.svg").grid(row=9, column=2, pady=20)
+        tk.Button(self.add_frame, text="Sauvegarder", command=self.save_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="arrow").grid(row=9, column=0, pady=20)
+        tk.Button(self.add_frame, text="Retour", command=self.switch_to_home_page, bg='#ffffff', fg='#000000', cursor="arrow").grid(row=9, column=1, pady=20)
+        tk.Button(self.add_frame, text="Supprimer", command=self.delete_application, bg='#ffffff', fg='#000000', relief=tk.RAISED, cursor="arrow").grid(row=9, column=2, pady=20)
 
     def update_char_count(self, event):
         current_length = len(self.comment_text.get("1.0", "end-1c"))
