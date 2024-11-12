@@ -1,0 +1,9 @@
+# Fichiers générés par PyInstaller
+build/
+dist/
+*.spec
+
+# Fichiers spécifiques à l'environnement
+__pycache__/
+*.pyc
+.DS_Store
