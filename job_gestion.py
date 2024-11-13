@@ -259,10 +259,20 @@ class JobApplicationApp:
     def switch_to_home_page(self):
         # Passer de la page d'ajout à la page d'accueil
         self.add_frame.pack_forget()
-        self.update_application_list()  # Mettre à jour la liste des candidatures
+
+        # Détruire tous les widgets de la page d'accueil pour les reconstruire
+        for widget in self.home_frame.winfo_children():
+            widget.destroy()
+
+        # Reconstruire la page d'accueil
+        self.build_home_page()
+
+        # Afficher la page d'accueil
         self.home_frame.pack(fill='both', expand=True)
+
         self.root.focus_force()  # Forcer le focus sur la fenêtre principale
         self.root.after(100, lambda: self.home_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
+
 
     def edit_application(self, idx):
         # Charger les informations de la candidature sélectionnée dans les champs
