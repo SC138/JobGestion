@@ -5,7 +5,10 @@ JobGestion est une application MacOS simple permettant de gérer vos candidature
 ## Fonctionnalités
 
 - **Gestion des candidatures** : Ajoutez des informations telles que le nom de l'entreprise, le poste, la lettre de motivation, le statut de la candidature, des commentaires, etc.
-- **Visualisation des candidatures** : Une interface claire pour voir toutes vos candidatures en un coup d'œil.
+- **Visualisation des candidatures** : Une interface claire pour voir toutes vos candidatures en un coup d'œil, avec pagination permettant de naviguer entre les pages si le nombre de candidatures est supérieur à 10.
+- **Recherche dynamique** : Une barre de recherche vous permet de filtrer les candidatures en fonction du nom de l'entreprise ou du poste, avec mise à jour instantanée de la liste.
+- **Tri des candidatures** : Cliquez sur les en-têtes de colonnes "Date" ou "Statut" pour trier les candidatures en fonction de ces critères (croissant/décroissant).
+- **Pagination** : La liste est paginée pour afficher un maximum de 10 candidatures par page. Vous pouvez naviguer facilement avec les boutons de pagination.
 - **Modification et suppression** : Accédez à chaque candidature pour la mettre à jour ou la supprimer.
 - **Commentaires** : Ajoutez des notes sur chaque candidature avec une limite de 1500 caractères.
 
@@ -42,10 +45,11 @@ Pour créer l'application MacOS, nous allons utiliser **PyInstaller**.
    ```
 
 2. Générez le fichier `.app` avec la commande suivante :
+
    ```bash
-   pyinstaller --windowed --onefile --add-data "app_logo.png:." --icon "logo.icns" job_gestion.py
+   pyinstaller --windowed --onefile --add-data "app_logo.png:." --add-data "arrows.png:." --icon "logo.icns" job_gestion.py
    ```
-   RE
+
 3. Après l'exécution de cette commande, vous trouverez l'application dans le dossier `dist/`.
 
 ### Lancer l'application
@@ -75,8 +79,18 @@ Pour lancer l'application de manière classique (en double-cliquant sur l'icône
    - Modifiez les informations et cliquez sur "Sauvegarder".
 
 3. **Supprimer une candidature** :
+
    - Depuis l'écran principal, cliquez sur "Modifier / Voir" pour une candidature.
    - Cliquez sur "Supprimer" et confirmez la suppression.
+
+4. **Navigation entre les pages** :
+
+   - Utilisez les boutons de navigation `<<`, `<`, `>`, `>>` situés sous la liste des candidatures pour naviguer entre les pages.
+   - Le nombre de pages est affiché entre les boutons.
+
+5. **Recherche et tri** :
+   - Utilisez la barre de recherche pour filtrer les candidatures par entreprise ou par poste.
+   - Cliquez sur les colonnes "Date" ou "Statut" pour trier les candidatures en fonction de ces critères.
 
 ## Déploiement via GitHub
 
