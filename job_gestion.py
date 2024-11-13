@@ -1,4 +1,3 @@
-# Importer les bibliothèques nécessaires
 import os
 import sys
 import json
@@ -18,7 +17,6 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-# Modifier les fonctions utilisant des ressources
 # Fonction pour sauvegarder les candidatures dans un fichier JSON
 def save_applications(database):
     try:
@@ -50,7 +48,8 @@ class JobApplicationApp:
         # Initialiser la fenêtre principale
         self.root = root
         self.root.title("JobGestion")
-        self.root.minsize(800, 600)  # Définir la taille minimale de la fenêtre
+        self.root.geometry("1200x800")  # Définir la taille initiale de la fenêtre pour afficher toutes les colonnes
+        self.root.minsize(1200, 800)  # Définir la taille minimale de la fenêtre
         self.database = load_applications()  # Charger les candidatures existantes
 
         # Charger le logo
@@ -65,9 +64,24 @@ class JobApplicationApp:
             self.logo_photo = None
             messagebox.showwarning("Attention", f"Le fichier app_logo.png est introuvable à l'emplacement : {logo_path}")
 
+        # Charger l'image des flèches pour le tri
+        self.sort_arrow_image = None
+        arrow_path = resource_path("arrows.png")
+        if os.path.exists(arrow_path):
+            arrow_image = Image.open(arrow_path).resize((10, 10), Image.LANCZOS)
+            self.sort_arrow_image = ImageTk.PhotoImage(arrow_image)
+
         # Frames pour les différentes pages
         self.home_frame = tk.Frame(self.root, bg='#333333')  # Frame pour la page d'accueil
         self.add_frame = tk.Frame(self.root, bg='#333333')  # Frame pour la page d'ajout/modification
+
+        # Variables de pagination
+        self.current_page = 0
+        self.items_per_page = 10
+
+        # Variable de tri
+        self.sort_by = None
+        self.sort_ascending = True
 
         # Construire la page d'accueil
         self.build_home_page()
@@ -86,9 +100,31 @@ class JobApplicationApp:
         # Titre de la page d'accueil
         tk.Label(self.home_frame, text="Vos Candidatures", font=("Helvetica", 16), bg='#333333', fg='#ffffff').pack(pady=10)
 
+        # Barre de recherche dynamique
+        self.search_var = tk.StringVar()
+        self.search_var.trace("w", self.search_and_update)
+        search_entry = tk.Entry(self.home_frame, textvariable=self.search_var, width=40)
+        search_entry.pack(pady=5)
+
         # Frame pour la liste des candidatures
         self.application_list_frame = tk.Frame(self.home_frame, bg='#333333')
-        self.application_list_frame.pack(pady=10, padx=10, fill='both')
+        self.application_list_frame.pack(pady=10, padx=10, fill='both', expand=True)
+
+        # Navigation entre les pages
+        self.navigation_frame = tk.Frame(self.home_frame, bg='#333333')
+        self.navigation_frame.pack(pady=5)
+
+        # Boutons de navigation
+        self.prev_page_btn = tk.Button(self.navigation_frame, text="<<", command=self.go_to_first_page, state=tk.DISABLED)
+        self.prev_page_btn.grid(row=0, column=0, padx=5)
+        self.prev_btn = tk.Button(self.navigation_frame, text="<", command=self.go_to_prev_page, state=tk.DISABLED)
+        self.prev_btn.grid(row=0, column=1, padx=5)
+        self.page_label = tk.Label(self.navigation_frame, text="Page 1", bg='#333333', fg='#ffffff')
+        self.page_label.grid(row=0, column=2, padx=5)
+        self.next_btn = tk.Button(self.navigation_frame, text=">", command=self.go_to_next_page)
+        self.next_btn.grid(row=0, column=3, padx=5)
+        self.next_page_btn = tk.Button(self.navigation_frame, text=">>", command=self.go_to_last_page)
+        self.next_page_btn.grid(row=0, column=4, padx=5)
 
         # Mettre à jour la liste des candidatures
         self.update_application_list()
@@ -96,25 +132,54 @@ class JobApplicationApp:
         # Bouton pour ajouter une nouvelle candidature
         tk.Button(self.home_frame, text="Nouvelle candidature", command=self.switch_to_add_page, bg='#ffffff', fg='#000000', relief=tk.FLAT, highlightthickness=0, cursor="arrow").pack(pady=20)
 
-    def update_application_list(self):
+    def search_and_update(self, *args):
+        # Réinitialiser à la première page pour afficher les résultats de recherche
+        self.current_page = 0
+        self.update_application_list()
+
+    def update_application_list(self, *args):
         # Effacer les widgets existants pour pouvoir recharger la liste
         for widget in self.application_list_frame.winfo_children():
             widget.destroy()
 
-        # Créer une seule table avec les en-têtes des colonnes et les données
-        table = tk.Frame(self.application_list_frame, relief=tk.RIDGE, borderwidth=1, padx=5, pady=5, bg='#333333')
-        table.pack(fill='both')
-        
+        # Récupérer le texte de recherche
+        search_text = self.search_var.get().lower()
+
+        # Filtrer les candidatures selon le texte de recherche
+        filtered_apps = [app for app in self.database["applications"] if search_text in app['company_name'].lower() or search_text in app['job_title'].lower()]
+
+        # Trier les candidatures
+        if self.sort_by:
+            reverse = not self.sort_ascending
+            filtered_apps.sort(key=lambda x: x[self.sort_by], reverse=reverse)
+
+        # Pagination
+        total_pages = (len(filtered_apps) + self.items_per_page - 1) // self.items_per_page
+        start_index = self.current_page * self.items_per_page
+        end_index = start_index + self.items_per_page
+        current_apps = filtered_apps[start_index:end_index]
+
+        # Mettre à jour l'affichage des pages
+        self.page_label.config(text=f"Page {self.current_page + 1} sur {total_pages}")
+        self.prev_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.prev_page_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.next_btn.config(state=tk.NORMAL if self.current_page < total_pages - 1 else tk.DISABLED)
+        self.next_page_btn.config(state=tk.NORMAL if self.current_page < total_pages - 1 else tk.DISABLED)
+
         # Ajouter un titre de colonne pour améliorer la lisibilité
-        tk.Label(table, text="#", width=5, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=0, sticky="nsew", ipadx=5, ipady=5)
-        tk.Label(table, text="Entreprise", width=20, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=1, sticky="nsew", ipadx=5, ipady=5)
-        tk.Label(table, text="Poste", width=20, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=2, sticky="nsew", ipadx=5, ipady=5)
-        tk.Label(table, text="Date", width=10, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=3, sticky="nsew", ipadx=5, ipady=5)
-        tk.Label(table, text="Statut", width=10, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=4, sticky="nsew", ipadx=5, ipady=5)
-        tk.Label(table, text="Actions", width=15, anchor="center", font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=0, column=5, sticky="nsew", ipadx=5, ipady=5)
+        headers = ["#", "Entreprise", "Poste", "Date", "Statut", "Actions"]
+        for col_num, header in enumerate(headers):
+            label = tk.Label(self.application_list_frame, text=header, width=20, font=("Helvetica", 16, "bold"), relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff', anchor="center")
+            label.grid(row=0, column=col_num, sticky="nsew", ipadx=5, ipady=5)
+            if header == "Date":
+                label.bind("<Button-1>", lambda e: self.sort_by_date())
+                tk.Label(self.application_list_frame, image=self.sort_arrow_image, bg='#333333').grid(row=0, column=col_num, sticky="e", ipadx=5, ipady=5)
+            elif header == "Statut":
+                label.bind("<Button-1>", lambda e: self.sort_by_status())
+                tk.Label(self.application_list_frame, image=self.sort_arrow_image, bg='#333333').grid(row=0, column=col_num, sticky="e", ipadx=5, ipady=5)
 
         # Parcourir chaque candidature dans la base de données
-        for idx, app in enumerate(self.database["applications"], start=1):
+        for idx, app in enumerate(current_apps, start=start_index + 1):
             # Essayer de parser la date dans différents formats
             date_str = app['application_date']
             try:
@@ -132,14 +197,93 @@ class JobApplicationApp:
             status_color = "#ff0000" if app['status'] == "Refusé" else "#00cc66" if app['status'] == "Accepté" else "#0000ff"
 
             # Ajouter chaque ligne dans le tableau avec les informations sur les candidatures
-            tk.Label(table, text=f"{idx}", width=5, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=0, sticky="nsew", ipadx=5, ipady=5)
-            tk.Label(table, text=f"{app['company_name']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=1, sticky="nsew", ipadx=5, ipady=5)
-            tk.Label(table, text=f"{app['job_title']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=2, sticky="nsew", ipadx=5, ipady=5)
-            tk.Label(table, text=formatted_date, width=10, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx, column=3, sticky="nsew", ipadx=5, ipady=5)
-            tk.Label(table, text=f"{app['status']}", width=10, anchor="center", relief=tk.SOLID, bd=1, bg=status_color, fg='#ffffff').grid(row=idx, column=4, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(self.application_list_frame, text=f"{idx}", width=5, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx - start_index, column=0, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(self.application_list_frame, text=f"{app['company_name']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx - start_index, column=1, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(self.application_list_frame, text=f"{app['job_title']}", width=20, anchor="w", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx - start_index, column=2, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(self.application_list_frame, text=formatted_date, width=10, anchor="center", relief=tk.SOLID, bd=1, bg='#333333', fg='#ffffff').grid(row=idx - start_index, column=3, sticky="nsew", ipadx=5, ipady=5)
+            tk.Label(self.application_list_frame, text=f"{app['status']}", width=10, anchor="center", relief=tk.SOLID, bd=1, bg=status_color, fg='#ffffff').grid(row=idx - start_index, column=4, sticky="nsew", ipadx=5, ipady=5)
 
             # Ajouter un bouton pour modifier ou voir les détails de chaque candidature
-            tk.Button(table, text="Modifier / Voir", command=lambda idx=idx-1: self.edit_application(idx), relief=tk.SOLID, bd=1, bg='#ffffff', fg='#000000', cursor="arrow").grid(row=idx, column=5, sticky="nsew", ipadx=5, ipady=5)
+            tk.Button(self.application_list_frame, text="Modifier / Voir", command=lambda idx=idx-1: self.edit_application(idx), relief=tk.SOLID, bd=1, bg='#ffffff', fg='#000000', cursor="arrow").grid(row=idx - start_index, column=5, sticky="nsew", ipadx=5, ipady=5)
+
+    def sort_by_date(self):
+        if self.sort_by == 'application_date':
+            self.sort_ascending = not self.sort_ascending
+        else:
+            self.sort_by = 'application_date'
+            self.sort_ascending = True
+        self.update_application_list()
+
+    def sort_by_status(self):
+        if self.sort_by == 'status':
+            self.sort_ascending = not self.sort_ascending
+        else:
+            self.sort_by = 'status'
+            self.sort_ascending = True
+        self.update_application_list()
+
+    def go_to_first_page(self):
+        self.current_page = 0
+        self.update_application_list()
+
+    def go_to_prev_page(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.update_application_list()
+
+    def go_to_next_page(self):
+        self.current_page += 1
+        self.update_application_list()
+
+    def go_to_last_page(self):
+        filtered_apps = [app for app in self.database["applications"] if self.search_var.get().lower() in app['company_name'].lower() or self.search_var.get().lower() in app['job_title'].lower()]
+        total_pages = (len(filtered_apps) + self.items_per_page - 1) // self.items_per_page
+        self.current_page = total_pages - 1
+        self.update_application_list()
+
+    def switch_to_add_page(self):
+        # Passer de la page d'accueil à la page d'ajout en réinitialisant les champs
+        self.current_edit_index = None  # Réinitialiser l'index d'édition
+        self.company_name_entry.delete(0, tk.END)
+        self.job_title_entry.delete(0, tk.END)
+        self.cover_letter_entry.delete(0, tk.END)
+        self.screenshot_entry.delete(0, tk.END)
+        self.status_combobox.current(0)
+        self.comment_text.delete('1.0', tk.END)
+
+        self.home_frame.pack_forget()
+        self.add_frame.pack(fill='both', expand=True)
+        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
+        self.root.after(100, lambda: self.add_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
+
+    def switch_to_home_page(self):
+        # Passer de la page d'ajout à la page d'accueil
+        self.add_frame.pack_forget()
+        self.update_application_list()  # Mettre à jour la liste des candidatures
+        self.home_frame.pack(fill='both', expand=True)
+        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
+        self.root.after(100, lambda: self.home_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
+
+    def edit_application(self, idx):
+        # Charger les informations de la candidature sélectionnée dans les champs
+        self.current_edit_index = idx  # Stocker l'index de la candidature en cours d'édition
+        selected_application = self.database["applications"][idx]
+        self.company_name_entry.delete(0, tk.END)
+        self.company_name_entry.insert(0, selected_application["company_name"])
+        self.job_title_entry.delete(0, tk.END)
+        self.job_title_entry.insert(0, selected_application["job_title"])
+        self.cover_letter_entry.delete(0, tk.END)
+        self.cover_letter_entry.insert(0, selected_application["cover_letter_path"])
+        self.screenshot_entry.delete(0, tk.END)
+        self.screenshot_entry.insert(0, selected_application["screenshot_path"])
+        self.status_combobox.set(selected_application["status"])
+        self.comment_text.delete('1.0', tk.END)
+        self.comment_text.insert('1.0', selected_application.get("comment", ""))
+
+        self.home_frame.pack_forget()
+        self.add_frame.pack(fill='both', expand=True)
+        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
+        self.root.after(100, lambda: self.add_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
 
     def build_add_page(self):
         # Ajouter le logo centré si disponible
@@ -206,50 +350,6 @@ class JobApplicationApp:
             self.comment_text.insert("1.0", event.widget.get("1.0", "end-1c")[:1500])
             current_length = 1500
         self.comment_char_count_label.config(text=f"{current_length}/1500")
-
-    def switch_to_home_page(self):
-        # Passer de la page d'ajout à la page d'accueil
-        self.add_frame.pack_forget()
-        self.update_application_list()  # Mettre à jour la liste des candidatures
-        self.home_frame.pack(fill='both', expand=True)
-        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
-        self.root.after(100, lambda: self.home_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
-
-    def switch_to_add_page(self):
-        # Passer de la page d'accueil à la page d'ajout en réinitialisant les champs
-        self.current_edit_index = None  # Réinitialiser l'index d'édition
-        self.company_name_entry.delete(0, tk.END)
-        self.job_title_entry.delete(0, tk.END)
-        self.cover_letter_entry.delete(0, tk.END)
-        self.screenshot_entry.delete(0, tk.END)
-        self.status_combobox.current(0)
-        self.comment_text.delete('1.0', tk.END)
-
-        self.home_frame.pack_forget()
-        self.add_frame.pack(fill='both', expand=True)
-        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
-        self.root.after(100, lambda: self.add_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
-
-    def edit_application(self, idx):
-        # Charger les informations de la candidature sélectionnée dans les champs
-        self.current_edit_index = idx  # Stocker l'index de la candidature en cours d'édition
-        selected_application = self.database["applications"][idx]
-        self.company_name_entry.delete(0, tk.END)
-        self.company_name_entry.insert(0, selected_application["company_name"])
-        self.job_title_entry.delete(0, tk.END)
-        self.job_title_entry.insert(0, selected_application["job_title"])
-        self.cover_letter_entry.delete(0, tk.END)
-        self.cover_letter_entry.insert(0, selected_application["cover_letter_path"])
-        self.screenshot_entry.delete(0, tk.END)
-        self.screenshot_entry.insert(0, selected_application["screenshot_path"])
-        self.status_combobox.set(selected_application["status"])
-        self.comment_text.delete('1.0', tk.END)
-        self.comment_text.insert('1.0', selected_application.get("comment", ""))
-
-        self.home_frame.pack_forget()
-        self.add_frame.pack(fill='both', expand=True)
-        self.root.focus_force()  # Forcer le focus sur la fenêtre principale
-        self.root.after(100, lambda: self.add_frame.focus())  # Assurer que le focus est bien sur la fenêtre après un court délai
 
     def save_application(self):
         # Récupérer les informations des champs

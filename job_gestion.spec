@@ -5,7 +5,7 @@ a = Analysis(
     ['job_gestion.py'],
     pathex=[],
     binaries=[],
-    datas=[('app_logo.png', '.')],
+    datas=[('app_logo.png', '.'), ('arrows.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
