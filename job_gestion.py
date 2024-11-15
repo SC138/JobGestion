@@ -50,8 +50,8 @@ class JobApplicationApp:
         self.root.title("JobGestion")
 
         # Taille initiale définie de manière explicite
-        self.root.geometry("1400x800")
-        self.root.minsize(1400, 800)
+        self.root.geometry("1400x900")
+        self.root.minsize(1400, 900)
 
         # Charger les candidatures existantes
         self.database = load_applications()
